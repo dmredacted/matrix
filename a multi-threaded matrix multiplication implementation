@@ -1,0 +1,81 @@
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+class MatrixMultiplier {
+    private static final int MATRIX_SIZE = 1000;
+    private static final int THREAD_POOL_SIZE = 4;
+
+    private static int[][] matrixA;
+    private static int[][] matrixB;
+    private static int[][] resultMatrix;
+
+    private static class MatrixMultiplicationTask implements Runnable {
+        private final int startRow;
+        private final int endRow;
+
+        MatrixMultiplicationTask(int startRow, int endRow) {
+            this.startRow = startRow;
+            this.endRow = endRow;
+        }
+
+        @Override
+        public void run() {
+            for (int i = startRow; i < endRow; i++) {
+                for (int j = 0; j < MATRIX_SIZE; j++) {
+                    for (int k = 0; k < MATRIX_SIZE; k++) {
+                        resultMatrix[i][j] += matrixA[i][k] * matrixB[k][j];
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        // Initialize matrices with random values
+        matrixA = new int[MATRIX_SIZE][MATRIX_SIZE];
+        matrixB = new int[MATRIX_SIZE][MATRIX_SIZE];
+        resultMatrix = new int[MATRIX_SIZE][MATRIX_SIZE];
+
+        for (int i = 0; i < MATRIX_SIZE; i++) {
+            for (int j = 0; j < MATRIX_SIZE; j++) {
+                matrixA[i][j] = (int) (Math.random() * 10);
+                matrixB[i][j] = (int) (Math.random() * 10);
+            }
+        }
+
+        // Perform matrix multiplication using multiple threads
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+
+        int rowsPerTask = MATRIX_SIZE / THREAD_POOL_SIZE;
+        int startRow = 0;
+        int endRow = rowsPerTask;
+
+        for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+            if (i == THREAD_POOL_SIZE - 1) {
+                endRow = MATRIX_SIZE;
+            }
+
+            MatrixMultiplicationTask task = new MatrixMultiplicationTask(startRow, endRow);
+            executor.execute(task);
+
+            startRow += rowsPerTask;
+            endRow += rowsPerTask;
+        }
+
+        executor.shutdown();
+
+        // Wait for all tasks to complete
+        while (!executor.isTerminated()) {
+            Thread.yield();
+        }
+
+        // Print the result matrix
+        System.out.println("Result Matrix:");
+        for (int i = 0; i < MATRIX_SIZE; i++) {
+            for (int j = 0; j < MATRIX_SIZE; j++) {
+                System.out.print(resultMatrix[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
+}
